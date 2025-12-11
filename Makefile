@@ -33,5 +33,10 @@ bump:
 # Release: bump version, commit, tag, push (CI builds artifacts on tag)
 release: bump
 	@ver=$$(cat .version.tmp); \
-	echo "Version bumped to $$ver. Please commit, tag (v$$ver), and push to trigger CI release."; \
+	git add transformers/version.go; \
+	git commit -m "cicd: bump version to v$$ver" || true; \
+	git tag "v$$ver"; \
+	git push origin HEAD:main; \
+	git push origin "v$$ver"; \
+	echo "Release v$$ver tagged and pushed. CI will build artifacts."; \
 	rm -f .version.tmp

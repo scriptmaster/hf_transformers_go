@@ -38,4 +38,3 @@ jobs:
             dist/hf_transformers_go-windows-amd64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

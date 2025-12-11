@@ -5,9 +5,9 @@ go 1.23.0
 toolchain go1.24.11
 
 require (
+	github.com/flosch/pongo2/v6 v6.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/sugarme/tokenizer v0.3.0
-	github.com/flosch/pongo2/v6 v6.0.0
 	github.com/yalue/onnxruntime_go v1.24.0
 )
 

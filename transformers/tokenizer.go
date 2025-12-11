@@ -12,7 +12,8 @@ import (
 
 // Tokenizer wraps sugarme/tokenizer with a HF-like interface.
 type Tokenizer struct {
-	tok *tokenizer.Tokenizer
+	tok          *tokenizer.Tokenizer
+	chatTemplate func([]ChatMessage) (string, error)
 }
 
 // AutoTokenizer is the HF-style static dispatcher:
@@ -44,12 +45,14 @@ func (autoTokenizer) FromPretrained(
 		return nil, err
 	}
 
+	chatTplFn, _ := loadChatTemplate(modelID)
+
 	tok, err := pretrained.FromFile(sanitizedPath)
 	if err != nil {
 		return nil, fmt.Errorf("AutoTokenizer: %w", err)
 	}
 
-	return &Tokenizer{tok: tok}, nil
+	return &Tokenizer{tok: tok, chatTemplate: chatTplFn}, nil
 }
 
 // Encode plain text into IDs.
@@ -94,6 +97,11 @@ func (t *Tokenizer) BatchDecode(batch [][]int64) ([]string, error) {
 // - always end with "Assistant:" to cue the model to answer next.
 // This is a fallback when no chat_template is provided by the model config.
 func (t *Tokenizer) renderChatTemplate(messages []ChatMessage) (string, error) {
+	if t.chatTemplate != nil {
+		if s, err := t.chatTemplate(messages); err == nil && s != "" {
+			return s, nil
+		}
+	}
 	var b strings.Builder
 	// collect system text first
 	for _, m := range messages {

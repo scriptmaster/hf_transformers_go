@@ -8,7 +8,7 @@ Python (transformers.js-like usage):
 ```python
 from transformers import pipeline
 generator = pipeline("text-generation", model="onnx-community/SmolLM2-135M-ONNX")
-out = generator("What is the capital of UAE?", max_new_tokens=32)
+out = generator("What is the third planet in our solar system and who inhabits it?", max_new_tokens=32)
 print(out[0]["generated_text"])
 ```
 
@@ -35,7 +35,7 @@ func main() {
 		log.Fatal(err)
 	}
 	out, err := generator([]ChatMessage{
-		{Role: RoleUser, Content: "What is the capital of UAE?"},
+		{Role: RoleUser, Content: "What is the third planet in our solar system and who inhabits it?"},
 	}, map[string]any{"max_new_tokens": 32})
 	if err != nil {
 		log.Fatal(err)

@@ -34,7 +34,7 @@ func main() {
 
 	messages := []ChatMessage{
 		{Role: RoleSystem, Content: "You are a helpful assistant."},
-		{Role: RoleUser, Content: "What is the capital of UAE?"},
+		{Role: RoleUser, Content: "What is the third planet in our solar system?"},
 	}
 
 	out, err := generator(messages, map[string]any{

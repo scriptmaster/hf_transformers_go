@@ -109,6 +109,9 @@ func pipelineImpl(
 		if len(stopSeqs) == 0 && len(config.StopStrings()) > 0 {
 			stopSeqs = config.StopStrings()
 		}
+		if len(stopSeqs) == 0 {
+			stopSeqs = []string{"\nUser:", "\nuser:", "\nAssistant:", "\nassistant:"}
+		}
 
 		genOpts := GenerationOptions{
 			MaxNewTokens:  maxNewTokens,

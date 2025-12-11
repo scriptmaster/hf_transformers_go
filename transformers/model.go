@@ -3,6 +3,9 @@ package transformers
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"strconv"
 	"strings"
 
 	onnx "github.com/yalue/onnxruntime_go"
@@ -53,9 +56,14 @@ func (autoModelForCausalLM) FromPretrained(
 		return nil, fmt.Errorf("download onnx model: %w", err)
 	}
 
+	loadedFiles := []string{onnxPath}
 	// Download external data files if present (best effort).
 	if strings.HasSuffix(filename, ".onnx") {
-		_, _ = HFHubEnsureOptionalFiles(modelID, []string{filename + "_data"})
+		if files, _ := HFHubEnsureOptionalFiles(modelID, []string{filename + "_data"}); files != nil {
+			if p, ok := files[filename+"_data"]; ok {
+				loadedFiles = append(loadedFiles, p)
+			}
+		}
 	}
 
 	// Environment should be initialized once per process.
@@ -96,6 +104,8 @@ func (autoModelForCausalLM) FromPretrained(
 	}
 
 	m.session = sess
+
+	logModelLoadInfo(modelID)
 
 	return m, nil
 }
@@ -308,6 +318,29 @@ func (m *ModelForCausalLM) generateSimpleCausal(
 	}
 
 	return [][]int64{generated}, nil
+}
+
+func logModelLoadInfo(modelID string) {
+	files := listDownloaded(modelID)
+	rssMB := currentRSSMB()
+	log.Printf("model loaded: repo=%s files=%v rss_mb=%.1f gpu_mb=0", modelID, files, rssMB)
+}
+
+func currentRSSMB() float64 {
+	data, err := os.ReadFile("/proc/self/statm")
+	if err != nil {
+		return 0
+	}
+	fields := strings.Fields(string(data))
+	if len(fields) < 2 {
+		return 0
+	}
+	residentPages, err := strconv.ParseInt(fields[1], 10, 64)
+	if err != nil {
+		return 0
+	}
+	pageSize := int64(os.Getpagesize())
+	return float64(residentPages*pageSize) / (1024.0 * 1024.0)
 }
 
 func (m *ModelForCausalLM) zeroTensorForInput(name string, seqLen int) (onnx.Value, error) {

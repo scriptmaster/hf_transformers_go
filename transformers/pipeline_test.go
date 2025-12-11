@@ -85,7 +85,7 @@ func TestPipeline_QA(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			out, err := testGen(tt.messages, map[string]any{
-				"max_new_tokens": 64,
+				"max_new_tokens": 32,
 				"do_sample":      false,
 			})
 			if err != nil {

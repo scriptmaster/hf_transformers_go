@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
+	"sync"
 )
 
 // HFHubDownload downloads a file from a Hugging Face repo into a local cache.
@@ -23,6 +26,7 @@ func HFHubDownload(repoID, filename string) (string, error) {
 
 	if _, err := os.Stat(localPath); err == nil {
 		// already cached
+		trackDownloaded(repoID, cacheDir, localPath)
 		return localPath, nil
 	}
 
@@ -34,6 +38,7 @@ func HFHubDownload(repoID, filename string) (string, error) {
 	if err := downloadURL(url, localPath); err != nil {
 		return "", fmt.Errorf("HFHubDownload GET %s: %w", filename, err)
 	}
+	trackDownloaded(repoID, cacheDir, localPath)
 
 	return localPath, nil
 }
@@ -56,6 +61,7 @@ func HFHubEnsureFiles(repoID string, files []string) (map[string]string, error) 
 		}
 		if _, err := os.Stat(localPath); err == nil {
 			res[name] = localPath
+			trackDownloaded(repoID, cacheDir, localPath)
 			continue
 		}
 		url := fmt.Sprintf("https://huggingface.co/%s/resolve/main/%s", repoID, name)
@@ -66,6 +72,7 @@ func HFHubEnsureFiles(repoID string, files []string) (map[string]string, error) 
 			return nil, fmt.Errorf("GET %s: %w", name, err)
 		}
 		res[name] = localPath
+		trackDownloaded(repoID, cacheDir, localPath)
 	}
 	return res, nil
 }
@@ -88,6 +95,7 @@ func HFHubEnsureOptionalFiles(repoID string, files []string) (map[string]string,
 		}
 		if _, err := os.Stat(localPath); err == nil {
 			res[name] = localPath
+			trackDownloaded(repoID, cacheDir, localPath)
 			continue
 		}
 		url := fmt.Sprintf("https://huggingface.co/%s/resolve/main/%s", repoID, name)
@@ -105,6 +113,7 @@ func HFHubEnsureOptionalFiles(repoID string, files []string) (map[string]string,
 			return nil, fmt.Errorf("GET %s: %w", name, err)
 		}
 		res[name] = localPath
+		trackDownloaded(repoID, cacheDir, localPath)
 	}
 	return res, nil
 }
@@ -171,4 +180,37 @@ func downloadURL(url, dest string) error {
 		return err
 	}
 	return nil
+}
+
+// --- tracking downloads for logging ---
+
+var (
+	downloadMu sync.Mutex
+	downloaded = map[string]map[string]struct{}{}
+)
+
+func trackDownloaded(repoID, cacheDir, path string) {
+	rel := path
+	if strings.HasPrefix(path, cacheDir) {
+		rel = strings.TrimPrefix(path, cacheDir)
+		rel = strings.TrimPrefix(rel, string(os.PathSeparator))
+	}
+	downloadMu.Lock()
+	defer downloadMu.Unlock()
+	if downloaded[repoID] == nil {
+		downloaded[repoID] = map[string]struct{}{}
+	}
+	downloaded[repoID][rel] = struct{}{}
+}
+
+func listDownloaded(repoID string) []string {
+	downloadMu.Lock()
+	defer downloadMu.Unlock()
+	m := downloaded[repoID]
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	slices.Sort(out)
+	return out
 }

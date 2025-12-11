@@ -75,7 +75,8 @@ func pipelineImpl(
 			callOptions = map[string]any{}
 		}
 
-		maxNewTokens := 128
+		// Default to a short cap to avoid run-on generations.
+		maxNewTokens := 32
 		if v, ok := callOptions["max_new_tokens"]; ok {
 			switch t := v.(type) {
 			case int:

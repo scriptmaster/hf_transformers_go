@@ -9,8 +9,17 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,11 +31,52 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Build artifacts
+      - name: Prepare dist
+        run: mkdir -p dist
+
+      - name: Download ONNX Runtime (windows only)
+        if: matrix.goos == 'windows'
+        shell: pwsh
         run: |
-          mkdir -p dist
-          make build-linux
-          make build-windows
+          $ver="1.22.0"
+          $url="https://github.com/microsoft/onnxruntime/releases/download/v$ver/onnxruntime-win-x64-$ver.zip"
+          Invoke-WebRequest -Uri $url -OutFile ort.zip
+          Expand-Archive ort.zip -DestinationPath ort
+          Copy-Item "ort\onnxruntime-win-x64-$ver\onnxruntime.dll" dist\onnxruntime.dll
+
+      - name: Build
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 1
+          WINDOWS: ${{ matrix.goos == 'windows' && '1' || '0' }}
+        run: |
+          if [ "$GOOS" = "windows" ]; then
+            make build-windows
+          else
+            make build-linux
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            dist/hf_transformers_go-${{ matrix.goos }}-${{ matrix.goarch }}*
+            dist/onnxruntime.dll
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: List artifacts
+        run: ls -R dist
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -34,7 +84,8 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           files: |
-            dist/hf_transformers_go-linux-amd64
-            dist/hf_transformers_go-windows-amd64.exe
+            dist/**/hf_transformers_go-linux-amd64
+            dist/**/hf_transformers_go-windows-amd64.exe
+            dist/**/onnxruntime.dll
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

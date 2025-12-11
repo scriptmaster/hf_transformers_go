@@ -15,10 +15,14 @@ build-linux: deps
 	GOOS=linux GOARCH=amd64 go build -o dist/hf_transformers_go-linux-amd64 .
 
 build-windows: deps
+ifneq ($(GOOS),windows)
 ifeq ($(WINDOWS),1)
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 go build -o dist/hf_transformers_go-windows-amd64.exe .
 else
 	@echo "Skipping Windows build; set WINDOWS=1 to attempt (requires Windows toolchain and onnxruntime DLLs)"
+endif
+else
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 go build -o dist/hf_transformers_go-windows-amd64.exe .
 endif
 
 # Build both (Linux + optional Windows)

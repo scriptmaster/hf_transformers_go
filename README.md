@@ -32,13 +32,15 @@ func main() {
 		map[string]any{"dtype": "q4"},
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 	out, err := generator([]ChatMessage{
 		{Role: RoleUser, Content: "What is the third planet in our solar system and who inhabits it?"},
 	}, map[string]any{"max_new_tokens": 32})
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 	fmt.Println(out[0]["generated_text"])
 }

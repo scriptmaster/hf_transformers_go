@@ -29,7 +29,8 @@ func main() {
 		map[string]any{"dtype": "q4"},
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 
 	messages := []ChatMessage{
@@ -46,7 +47,8 @@ func main() {
 		},
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 
 	gen := out[0]["generated_text"].([]map[string]any)

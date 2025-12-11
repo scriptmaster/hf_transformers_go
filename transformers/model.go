@@ -56,13 +56,10 @@ func (autoModelForCausalLM) FromPretrained(
 		return nil, fmt.Errorf("download onnx model: %w", err)
 	}
 
-	loadedFiles := []string{onnxPath}
 	// Download external data files if present (best effort).
 	if strings.HasSuffix(filename, ".onnx") {
 		if files, _ := HFHubEnsureOptionalFiles(modelID, []string{filename + "_data"}); files != nil {
-			if p, ok := files[filename+"_data"]; ok {
-				loadedFiles = append(loadedFiles, p)
-			}
+			_ = files
 		}
 	}
 
@@ -323,7 +320,7 @@ func (m *ModelForCausalLM) generateSimpleCausal(
 func logModelLoadInfo(modelID string) {
 	files := listDownloaded(modelID)
 	rssMB := currentRSSMB()
-	log.Printf("model loaded: repo=%s files=%v rss_mb=%.1f gpu_mb=0", modelID, files, rssMB)
+	log.Printf("[v%s] model loaded: repo=%s files=%v rss_mb=%.1f gpu_mb=0", Version, modelID, files, rssMB)
 }
 
 func currentRSSMB() float64 {

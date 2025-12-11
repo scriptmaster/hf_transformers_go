@@ -32,3 +32,5 @@ go.work.sum
 # .vscode/
 models/
 .onnxruntime/
+dist/
+.version.tmp
